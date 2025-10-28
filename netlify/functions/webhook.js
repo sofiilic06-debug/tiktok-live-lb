@@ -1,25 +1,28 @@
-export async function handler(event, context) {
+exports.handler = async (event) => {
   try {
-    const body = JSON.parse(event.body);
+    // TikTok šalje "challenge" prilikom verifikacije
+    const body = JSON.parse(event.body || '{}');
 
-    // Kada TikTok pošalje "challenge", moraš da ga vratiš
-    if (body?.challenge) {
+    // Ako je challenge event — samo vrati challenge
+    if (body && body.challenge) {
       return {
         statusCode: 200,
         body: JSON.stringify({ challenge: body.challenge }),
       };
     }
 
-    console.log("TikTok Event:", body);
+    // Ako nije test event, samo potvrdi prijem
+    console.log("TikTok Event Received:", body);
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ received: true }),
+      body: JSON.stringify({ success: true }),
     };
-  } catch (err) {
+  } catch (error) {
+    console.error("Webhook error:", error);
     return {
-      statusCode: 400,
-      body: JSON.stringify({ error: "Invalid request" }),
+      statusCode: 500,
+      body: JSON.stringify({ error: "Server error" }),
     };
   }
-}
+};
