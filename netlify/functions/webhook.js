@@ -1,48 +1,29 @@
-export async function handler(event) {
+export default async (req, res) => {
   try {
-    if (event.httpMethod !== "POST") {
-      return {
-        statusCode: 405,
-        body: JSON.stringify({ error: "Method not allowed" }),
-      };
-    }
+    const body = req.body ? JSON.parse(req.body) : {};
+    console.log("📩 Primljen webhook:", body);
 
-    const body = JSON.parse(event.body);
+    const event = {
+      user: body?.user?.nickname || "Nepoznato",
+      gift: body?.gift?.name || "Nepoznato",
+      value: body?.gift?.diamond_count || 0,
+    };
 
-    // Ako TikTok šalje test signal
-    if (body.event === "tiktok.ping") {
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ success: true, message: "Ping OK" }),
-      };
-    }
-
-    // Ako stiže pravi događaj sa lajva
-    if (body.event === "gift_send") {
-      const gift = JSON.parse(body.content);
-      console.log("🎁 Primljen poklon:", gift);
-
-      // Opciono: Pošalji podatke tvojoj web aplikaciji (npr. leaderboard)
-      await fetch("https://tvoj-netlify-projekat.netlify.app/update", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user: gift.user_name,
-          gift: gift.gift_name,
-          value: gift.gift_value,
-        }),
+    // Ako WebSocket server postoji, šaljemo podatak svim konektovanim klijentima
+    if (globalThis.wss) {
+      globalThis.wss.clients.forEach((client) => {
+        if (client.readyState === 1) {
+          client.send(JSON.stringify(event));
+        }
       });
+      console.log("📤 Poslato klijentima:", event);
     }
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ success: true }),
-    };
-  } catch (error) {
-    console.error("❌ Webhook error:", error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: error.message }),
-    };
+    res.statusCode = 200;
+    res.end("OK");
+  } catch (err) {
+    console.error("❌ Greška u webhook funkciji:", err);
+    res.statusCode = 500;
+    res.end("Greška na serveru");
   }
-}
+};
