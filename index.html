@@ -39,6 +39,26 @@
       </table>
     </div>
 
-    <script src="script.js"></script>
-  </body>
+<script src="script.js"></script>
+
+<script>
+const socket = new WebSocket("wss://tiktok-live-lbb.netlify.app/.netlify/functions/socket");
+
+socket.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log("🎁 Novi gift:", data);
+
+  // primer: ažuriraj leaderboard
+  const list = document.getElementById("leaderboard-body");
+  const item = document.createElement("tr");
+  item.innerHTML = `
+    <td>⭐</td>
+    <td>${data.user}</td>
+    <td>${data.gift} (${data.value} coins)</td>
+  `;
+  list.prepend(item);
+};
+</script>
+</body>
 </html>
+
