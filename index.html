@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TikTok Live Leaderboard</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="header">
+      <div class="left-header">
+        <div class="live-indicator" aria-hidden="true"></div>
+        <span class="live-text">LIVE</span>
+      </div>
+
+      <div class="title-block">
+        <h2 class="title">Country Gift Leaderboard</h2>
+        <div class="subtitle">Send gift to rank up your country</div>
+      </div>
+
+      <div class="menu">
+        <button id="menuBtn">⋮</button>
+        <div id="menuDropdown" class="dropdown-content">
+          <button id="resetBtn">Reset Score</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <table id="leaderboard" aria-live="polite">
+        <thead>
+          <tr>
+            <th class="col-rank">Rank</th>
+            <th class="col-country">Country</th>
+            <th class="col-gifts">Gifts</th>
+          </tr>
+        </thead>
+        <tbody id="leaderboard-body"></tbody>
+      </table>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
