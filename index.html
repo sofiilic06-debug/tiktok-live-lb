@@ -58,6 +58,36 @@ socket.onmessage = (event) => {
   `;
   list.prepend(item);
 };
+  
+  // --- DODAJ OVO ISPOD POSTOJEĆEG KODA ---
+
+// Opcionalno: poveži se i na TikTok evente emitovane iz webhook funkcije
+// (ako webhook.js koristi Socket.IO)
+try {
+  const ioSocket = io("https://tiktok-live-lbb.in.rs", {
+    transports: ["websocket"],
+  });
+
+  ioSocket.on("connect", () => {
+    console.log("✅ Povezan na TikTok socket server");
+  });
+
+  ioSocket.on("tiktok_event", (data) => {
+    console.log("🎉 Novi TikTok event:", data);
+
+    // ako dođe gift event iz TikToka, ubaci ga u tabelu isto kao gore
+    const list = document.getElementById("leaderboard-body");
+    const item = document.createElement("tr");
+    item.innerHTML = `
+      <td>🎁</td>
+      <td>${data.user || "Nepoznat"}</td>
+      <td>${data.giftName || data.gift || "Gift"} (${data.value || 1} coins)</td>
+    `;
+    list.prepend(item);
+  });
+} catch (err) {
+  console.warn("⚠️ Socket.IO nije dostupan (još nije aktivan server):", err);
+}
 </script>
 </body>
 </html>
