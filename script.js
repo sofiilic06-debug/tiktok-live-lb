@@ -1,6 +1,61 @@
-// final script.js — dynamic countries + PNG flag fallback + TikTok webhook handling
+// ✅ FINAL SCRIPT.JS — Full version with ISO flag ZIP (w2560.zip)
 
-/* ---------- Config / initial 20 countries (keeps your current look) ---------- */
+/* ---------- ISO → country slug map ---------- */
+const isoToSlug = {
+  AF: "afghanistan", AL: "albania", DZ: "algeria", AD: "andorra", AO: "angola",
+  AG: "antigua-and-barbuda", AR: "argentina", AM: "armenia", AU: "australia",
+  AT: "austria", AZ: "azerbaijan", BS: "bahamas", BH: "bahrain", BD: "bangladesh",
+  BB: "barbados", BY: "belarus", BE: "belgium", BZ: "belize", BJ: "benin",
+  BT: "bhutan", BO: "bolivia", BA: "bosnia-and-herzegovina", BW: "botswana",
+  BR: "brazil", BN: "brunei", BG: "bulgaria", BF: "burkina-faso", BI: "burundi",
+  KH: "cambodia", CM: "cameroon", CA: "canada", CV: "cape-verde",
+  CF: "central-african-republic", TD: "chad", CL: "chile", CN: "china",
+  CO: "colombia", KM: "comoros", CG: "congo", CR: "costa-rica", HR: "croatia",
+  CU: "cuba", CY: "cyprus", CZ: "czech-republic", DK: "denmark", DJ: "djibouti",
+  DM: "dominica", DO: "dominican-republic", EC: "ecuador", EG: "egypt",
+  SV: "el-salvador", GQ: "equatorial-guinea", ER: "eritrea", EE: "estonia",
+  SZ: "eswatini", ET: "ethiopia", FJ: "fiji", FI: "finland", FR: "france",
+  GA: "gabon", GM: "gambia", GE: "georgia", DE: "germany", GH: "ghana",
+  GR: "greece", GD: "grenada", GT: "guatemala", GN: "guinea", GW: "guinea-bissau",
+  GY: "guyana", HT: "haiti", HN: "honduras", HU: "hungary", IS: "iceland",
+  IN: "india", ID: "indonesia", IR: "iran", IQ: "iraq", IE: "ireland",
+  IL: "israel", IT: "italy", JM: "jamaica", JP: "japan", JO: "jordan",
+  KZ: "kazakhstan", KE: "kenya", KI: "kiribati", KR: "south-korea",
+  KW: "kuwait", KG: "kyrgyzstan", LA: "laos", LV: "latvia", LB: "lebanon",
+  LS: "lesotho", LR: "liberia", LY: "libya", LI: "liechtenstein", LT: "lithuania",
+  LU: "luxembourg", MG: "madagascar", MW: "malawi", MY: "malaysia",
+  MV: "maldives", ML: "mali", MT: "malta", MH: "marshall-islands",
+  MR: "mauritania", MU: "mauritius", MX: "mexico", FM: "micronesia",
+  MD: "moldova", MC: "monaco", MN: "mongolia", ME: "montenegro", MA: "morocco",
+  MZ: "mozambique", MM: "myanmar", NA: "namibia", NR: "nauru", NP: "nepal",
+  NL: "netherlands", NZ: "new-zealand", NI: "nicaragua", NE: "niger",
+  NG: "nigeria", MK: "north-macedonia", NO: "norway", OM: "oman", PK: "pakistan",
+  PW: "palau", PA: "panama", PG: "papua-new-guinea", PY: "paraguay", PE: "peru",
+  PH: "philippines", PL: "poland", PT: "portugal", QA: "qatar", RO: "romania",
+  RU: "russia", RW: "rwanda", KN: "saint-kitts-and-nevis", LC: "saint-lucia",
+  VC: "saint-vincent-and-the-grenadines", WS: "samoa", SM: "san-marino",
+  ST: "sao-tome-and-principe", SA: "saudi-arabia", SN: "senegal", RS: "serbia",
+  SC: "seychelles", SL: "sierra-leone", SG: "singapore", SK: "slovakia",
+  SI: "slovenia", SB: "solomon-islands", SO: "somalia", ZA: "south-africa",
+  SS: "south-sudan", ES: "spain", LK: "sri-lanka", SD: "sudan", SR: "suriname",
+  SE: "sweden", CH: "switzerland", SY: "syria", TW: "taiwan", TJ: "tajikistan",
+  TZ: "tanzania", TH: "thailand", TG: "togo", TO: "tonga", TT: "trinidad-and-tobago",
+  TN: "tunisia", TR: "turkey", TM: "turkmenistan", TV: "tuvalu", UG: "uganda",
+  UA: "ukraine", AE: "united-arab-emirates", GB: "united-kingdom", US: "united-states",
+  UY: "uruguay", UZ: "uzbekistan", VU: "vanuatu", VE: "venezuela", VN: "vietnam",
+  YE: "yemen", ZM: "zambia", ZW: "zimbabwe"
+};
+
+/* ---------- Helper: get flag path by country name ---------- */
+function getFlagByCountry(name) {
+  const key = name.trim().toLowerCase();
+  for (const [iso, slug] of Object.entries(isoToSlug)) {
+    if (slug === key) return `flags/${iso.toLowerCase()}.png`;
+  }
+  return "flags/unknown.png"; // fallback
+}
+
+/* ---------- Config / initial 20 countries ---------- */
 const initialCountries = [
   { name: "Germany", slug: "germany", coins: 0 },
   { name: "Spain", slug: "spain", coins: 0 },
@@ -9,7 +64,7 @@ const initialCountries = [
   { name: "United Kingdom", slug: "united-kingdom", coins: 0 },
   { name: "France", slug: "france", coins: 0 },
   { name: "Italy", slug: "italy", coins: 0 },
-  { name: "USA", slug: "usa", coins: 0 },
+  { name: "USA", slug: "united-states", coins: 0 },
   { name: "Brazil", slug: "brazil", coins: 0 },
   { name: "Mexico", slug: "mexico", coins: 0 },
   { name: "Japan", slug: "japan", coins: 0 },
@@ -24,46 +79,31 @@ const initialCountries = [
   { name: "Canada", slug: "canada", coins: 0 }
 ];
 
-/* ---------- Helper: slugify country name for file names ---------- */
-function slugifyCountry(name) {
-  // simple slug: lowercase, replace spaces with -, remove accents & non-alphanum except hyphen
-  // remove diacritics:
-  const from = "ÁÀÄÂÃÅÆáàäâãåæČčĆćÇçĐđÉÈËÊéèëêÍÌÏÎíìïîŁłŃńÓÒÖÔÕØóòöôõøŒœŘřŠšŚśŸÿÝýŽžŽž";
-  const to   = "AAAAAAAaaaaaaaCcCcDdEEEEeeeeIIIIiiiiLlNnOOOOOOooooooOerRssSsyyYyZzZz";
-  let s = name.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // remove accents
-  s = s.replace(/[^\w\s-]/g, ""); // remove non word/space/hyphen
-  s = s.trim().toLowerCase().replace(/\s+/g, "-");
-  return s;
-}
-
-/* ---------- Countries data structure: start with initial 20, keep a map for quick find ---------- */
+/* ---------- Build leaderboard data ---------- */
 const countries = [];
-const countryMap = {}; // name -> object
-
+const countryMap = {};
 initialCountries.forEach(c => {
   const obj = {
     name: c.name,
-    slug: c.slug || slugifyCountry(c.name),
-    flagHtml: `<img src="flags/${c.slug || slugifyCountry(c.name)}.png" alt="${c.name}" style="width:20px;height:14px;vertical-align:middle;margin-right:6px;">`,
+    slug: c.slug,
+    flagHtml: `<img src="${getFlagByCountry(c.slug)}" alt="${c.name}" style="width:20px;height:14px;vertical-align:middle;margin-right:6px;">`,
     coins: c.coins || 0
   };
   countries.push(obj);
   countryMap[c.name.toLowerCase()] = obj;
 });
 
-/* ---------- Trackers for animations / deltas ---------- */
 let prevTop20 = [];
 const prevCoins = {};
 countries.forEach(c => prevCoins[c.name.toLowerCase()] = c.coins);
 
-/* ---------- Gift value mapping (approx) ---------- */
 const giftValues = {
   rose: 1, panda: 5, perfume: 20, iloveyou: 49, confetti: 100, sunglasses: 199,
   moneyrain: 500, discoball: 1000, mermaid: 2988, airplane: 6000, planet: 15000,
   lion: 29999, universe: 44999
 };
 
-/* ---------- Render logic: show top 20 only (keeps your current UI) ---------- */
+/* ---------- Render leaderboard ---------- */
 function updateLeaderboardRender() {
   const sorted = [...countries].sort((a,b) => b.coins - a.coins);
   const top20 = sorted.slice(0,20);
@@ -76,15 +116,12 @@ function updateLeaderboardRender() {
     const tr = document.createElement("tr");
     tr.setAttribute("data-name", c.name);
 
-    // rank
     const tdRank = document.createElement("td");
     tdRank.textContent = idx + 1;
 
-    // country + flag
     const tdCountry = document.createElement("td");
     tdCountry.innerHTML = `${c.flagHtml} <span class="country-name">${c.name}</span>`;
 
-    // gifts (coins bar)
     const tdGifts = document.createElement("td");
     const bar = document.createElement("div");
     bar.className = "progress-bar";
@@ -100,11 +137,9 @@ function updateLeaderboardRender() {
     tr.appendChild(tdCountry);
     tr.appendChild(tdGifts);
 
-    // highlight if increased
     const prev = prevCoins[c.name.toLowerCase()] || 0;
     if (c.coins > prev) {
       tr.classList.add("gift-highlight");
-      // small popup delta
       const popup = document.createElement("div");
       popup.className = "gift-popup";
       popup.textContent = `+${c.coins - prev}`;
@@ -114,17 +149,13 @@ function updateLeaderboardRender() {
     }
 
     prevCoins[c.name.toLowerCase()] = c.coins;
-
-    // top classes (keep your styling)
     if (idx === 0) tr.classList.add("top1");
     if (idx === 1) tr.classList.add("top2");
     if (idx === 2) tr.classList.add("top3");
-
     tbody.appendChild(tr);
   });
 
   const newTopNames = top20.map(x => x.name);
-  // flash newly-entered top20 items
   newTopNames.forEach((nm, i) => {
     if (!prevTop20.includes(nm)) {
       const row = tbody.querySelector(`tr[data-name="${nm}"]`);
@@ -137,17 +168,16 @@ function updateLeaderboardRender() {
   prevTop20 = newTopNames;
 }
 
-/* ---------- Apply gift: finds or creates country entry, adds coins ---------- */
+/* ---------- Apply gifts ---------- */
 function ensureCountry(name) {
   if (!name) name = "Unknown";
   const key = name.toLowerCase();
   if (countryMap[key]) return countryMap[key];
 
-  const slug = slugifyCountry(name);
   const obj = {
     name,
-    slug,
-    flagHtml: `<img src="flags/${slug}.png" alt="${name}" style="width:20px;height:14px;vertical-align:middle;margin-right:6px;">`,
+    slug: name,
+    flagHtml: `<img src="${getFlagByCountry(name)}" alt="${name}" style="width:20px;height:14px;vertical-align:middle;margin-right:6px;">`,
     coins: 0
   };
   countries.push(obj);
@@ -161,7 +191,7 @@ function applyGift(countryName, amount) {
   updateLeaderboardRender();
 }
 
-/* ---------- Reset button (keeps your existing handler) ---------- */
+/* ---------- Reset button ---------- */
 const resetBtn = document.getElementById("resetBtn");
 if (resetBtn) {
   resetBtn.addEventListener("click", () => {
@@ -171,46 +201,33 @@ if (resetBtn) {
   });
 }
 
-/* ---------- Initial render (shows initial 20) ---------- */
+/* ---------- Initial render ---------- */
 updateLeaderboardRender();
 
-/* ---------- TikTok/Webhook integration (WebSocket + Socket.IO fallback) ---------- */
-/* NOTE:
-   - main websocket endpoint you used previously: wss://tiktok-live-lbb.netlify.app/.netlify/functions/socket
-   - Socket.IO fallback endpoint: https://tiktok-live-lbb.in.rs (if you set up global socket there)
-*/
-
+/* ---------- TikTok / WebSocket integration ---------- */
 try {
-  // WebSocket (your existing socket function)
   const ws = new WebSocket("wss://tiktok-live-lbb.netlify.app/.netlify/functions/socket");
-
-  ws.onopen = () => console.log("✅ WebSocket connected to Netlify socket function");
+  ws.onopen = () => console.log("✅ WebSocket connected");
   ws.onmessage = (ev) => {
     try {
       const payload = JSON.parse(ev.data);
-      // expect payload shape: { country: "Country Name", value: <number>, user: "name", giftName: "..." }
       const country = payload.country || payload.data?.country || payload.user?.country || payload.countryName;
       const value = payload.value || payload.data?.value || payload.data?.giftValue || 1;
       if (country) applyGift(country, value);
       else console.log("⚠️ WebSocket event with no country:", payload);
-    } catch (err) {
-      console.warn("⚠️ ws parse error:", err);
-    }
+    } catch (err) { console.warn("⚠️ ws parse error:", err); }
   };
-
   ws.onclose = () => console.log("⚠️ WebSocket closed");
   ws.onerror = (e) => console.warn("⚠️ WebSocket error", e);
 } catch (err) {
   console.warn("⚠️ Could not open native WebSocket:", err);
 }
 
-// Socket.IO fallback (if webhook emits via io on tiktok-live-lbb.in.rs)
 try {
   if (typeof io !== "undefined") {
     const ioSocket = io("https://tiktok-live-lbb.in.rs", { transports: ["websocket"] });
-    ioSocket.on("connect", () => console.log("✅ Socket.IO connected to TikTok webhook"));
+    ioSocket.on("connect", () => console.log("✅ Socket.IO connected"));
     ioSocket.on("tiktok_event", (data) => {
-      // handle different shapes from TikTok
       const country = data?.country || data?.data?.country || data?.payload?.country || data?.user?.country;
       const value = data?.value || data?.data?.value || data?.data?.giftValue || 1;
       applyGift(country || "Unknown", value);
@@ -218,20 +235,5 @@ try {
     ioSocket.on("disconnect", () => console.log("⚠️ io disconnected"));
   }
 } catch (e) {
-  console.warn("ℹ️ Socket.IO client not available or failed:", e.message);
-}
-
-/* ---------- Optional: simulate random gifts (disabled by default) ----------
-   If you want to test locally without real webhook - uncomment call to startSimulation()
-*/
-// startSimulation();
-
-function startSimulation(intervalMs = 2500) {
-  const sampleCountries = ["Madagascar","Iceland","Serbia","Germany","Brazil","Canada","Japan","Madagascar"];
-  setInterval(() => {
-    const name = sampleCountries[Math.floor(Math.random()*sampleCountries.length)];
-    const giftKey = Object.keys(giftValues)[Math.floor(Math.random()*Object.keys(giftValues).length)];
-    const val = giftValues[giftKey] || 1;
-    applyGift(name, val);
-  }, intervalMs);
+  console.warn("ℹ️ Socket.IO client not available:", e.message);
 }
