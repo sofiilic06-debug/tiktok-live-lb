@@ -1,29 +1,36 @@
 export default async (req, res) => {
   try {
-    const body = req.body ? JSON.parse(req.body) : {};
-    console.log("📩 Primljen webhook:", body);
+    // Parse body
+    const body = await req.json();
 
-    const event = {
-      user: body?.user?.nickname || "Nepoznato",
-      gift: body?.gift?.name || "Nepoznato",
-      value: body?.gift?.diamond_count || 0,
-    };
-
-    // Ako WebSocket server postoji, šaljemo podatak svim konektovanim klijentima
-    if (globalThis.wss) {
-      globalThis.wss.clients.forEach((client) => {
-        if (client.readyState === 1) {
-          client.send(JSON.stringify(event));
-        }
+    // ✅ 1. TikTok test verifikacija
+    if (body?.challenge) {
+      return new Response(JSON.stringify({ challenge: body.challenge }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
       });
-      console.log("📤 Poslato klijentima:", event);
     }
 
-    res.statusCode = 200;
-    res.end("OK");
-  } catch (err) {
-    console.error("❌ Greška u webhook funkciji:", err);
-    res.statusCode = 500;
-    res.end("Greška na serveru");
+    // ✅ 2. Ako je pravi event (gift, comment, live itd)
+    if (body?.event) {
+      console.log("🎁 TikTok Event:", body);
+
+      return new Response(JSON.stringify({ status: "ok" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Ako nije ništa od gore navedenog
+    return new Response(JSON.stringify({ error: "Invalid request" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("❌ Webhook error:", error);
+    return new Response(JSON.stringify({ error: "Server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 };
