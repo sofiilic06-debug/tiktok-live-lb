@@ -39,56 +39,55 @@
       </table>
     </div>
 
-<script src="script.js"></script>
+    <!-- 🔹 OVA LINIJA NEDOSTAJE U TVOM KODU: učitava Socket.IO klijent -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
-<script>
-const socket = new WebSocket("wss://tiktok-live-lbb.netlify.app/.netlify/functions/socket");
+    <script src="script.js"></script>
 
-socket.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  console.log("🎁 Novi gift:", data);
+    <script>
+    const socket = new WebSocket("wss://tiktok-live-lbb.netlify.app/.netlify/functions/socket");
 
-  // primer: ažuriraj leaderboard
-  const list = document.getElementById("leaderboard-body");
-  const item = document.createElement("tr");
-  item.innerHTML = `
-    <td>⭐</td>
-    <td>${data.user}</td>
-    <td>${data.gift} (${data.value} coins)</td>
-  `;
-  list.prepend(item);
-};
-  
-  // --- DODAJ OVO ISPOD POSTOJEĆEG KODA ---
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      console.log("🎁 Novi gift:", data);
 
-// Opcionalno: poveži se i na TikTok evente emitovane iz webhook funkcije
-// (ako webhook.js koristi Socket.IO)
-try {
-  const ioSocket = io("https://tiktok-live-lbb.in.rs", {
-    transports: ["websocket"],
-  });
+      // primer: ažuriraj leaderboard
+      const list = document.getElementById("leaderboard-body");
+      const item = document.createElement("tr");
+      item.innerHTML = `
+        <td>⭐</td>
+        <td>${data.user}</td>
+        <td>${data.gift} (${data.value} coins)</td>
+      `;
+      list.prepend(item);
+    };
 
-  ioSocket.on("connect", () => {
-    console.log("✅ Povezan na TikTok socket server");
-  });
+    // --- DODATNI DEO ZA WEBHOOK EVENTE ---
+    try {
+      const ioSocket = io("https://tiktok-live-lbb.in.rs", {
+        transports: ["websocket"],
+      });
 
-  ioSocket.on("tiktok_event", (data) => {
-    console.log("🎉 Novi TikTok event:", data);
+      ioSocket.on("connect", () => {
+        console.log("✅ Povezan na TikTok socket server");
+      });
 
-    // ako dođe gift event iz TikToka, ubaci ga u tabelu isto kao gore
-    const list = document.getElementById("leaderboard-body");
-    const item = document.createElement("tr");
-    item.innerHTML = `
-      <td>🎁</td>
-      <td>${data.user || "Nepoznat"}</td>
-      <td>${data.giftName || data.gift || "Gift"} (${data.value || 1} coins)</td>
-    `;
-    list.prepend(item);
-  });
-} catch (err) {
-  console.warn("⚠️ Socket.IO nije dostupan (još nije aktivan server):", err);
-}
-</script>
-</body>
+      ioSocket.on("tiktok_event", (data) => {
+        console.log("🎉 Novi TikTok event:", data);
+
+        // ako dođe gift event iz TikToka, ubaci ga u tabelu isto kao gore
+        const list = document.getElementById("leaderboard-body");
+        const item = document.createElement("tr");
+        item.innerHTML = `
+          <td>🎁</td>
+          <td>${data.user || "Nepoznat"}</td>
+          <td>${data.giftName || data.gift || "Gift"} (${data.value || 1} coins)</td>
+        `;
+        list.prepend(item);
+      });
+    } catch (err) {
+      console.warn("⚠️ Socket.IO nije dostupan (još nije aktivan server):", err);
+    }
+    </script>
+  </body>
 </html>
-
