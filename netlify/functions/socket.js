@@ -1,41 +1,27 @@
-import { Server } from "ws";
+import { Server } from "socket.io";
 
-let wss;
+let io;
 
 export default async (req, res) => {
-  if (!wss) {
-    wss = new Server({ noServer: true });
+  if (!io) {
+    io = new Server(3000, {
+      cors: { origin: "*" },
+    });
 
-    console.log("✅ WebSocket server pokrenut");
+    io.on("connection", (socket) => {
+      console.log("🟢 Novi klijent:", socket.id);
 
-    // Osluškuje i loguje kada se neko poveže
-    wss.on("connection", (ws) => {
-      console.log("🔌 Novi klijent povezan!");
-      ws.send(JSON.stringify({ message: "Dobrodošao na TikTok Live Leaderboard!" }));
+      socket.on("disconnect", () => {
+        console.log("🔴 Klijent se odjavio:", socket.id);
+      });
     });
   }
 
-  if (req.url === "/.netlify/functions/socket" && req.method === "GET") {
-    if (req.socket.server.wss) {
-      res.statusCode = 400;
-      res.end("WebSocket već aktivan");
-      return;
+  return new Response(
+    JSON.stringify({ status: "Socket server aktivan ✅" }),
+    {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
     }
-
-    req.socket.server.wss = wss;
-
-    req.socket.server.on("upgrade", (request, socket, head) => {
-      if (request.url === "/.netlify/functions/socket") {
-        wss.handleUpgrade(request, socket, head, (ws) => {
-          wss.emit("connection", ws, request);
-        });
-      }
-    });
-
-    res.statusCode = 200;
-    res.end("WebSocket aktivan");
-  } else {
-    res.statusCode = 404;
-    res.end("Not found");
-  }
+  );
 };
