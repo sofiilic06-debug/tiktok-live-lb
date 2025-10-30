@@ -1,19 +1,29 @@
-// ✅ TikTok Webhook sa challenge proverom i Socket.io emitovanjem
+// ✅ TikTok Webhook sa challenge proverom i Socket.io emitovanjem (Netlify verzija)
 import { Server } from "socket.io";
 
-// Inicijalizacija globalnog Socket servera (da ne puca kad Netlify osveži funkciju)
+// 🔹 Jedan globalni server koji ostaje aktivan (Netlify "cold start" fix)
+let io;
 if (!globalThis.io) {
-  globalThis.io = new Server(3000, {
-    cors: { origin: "*" },
+  io = new Server({
+    cors: {
+      origin: "*", // dozvoljava tvoj front-end
+      methods: ["GET", "POST"],
+    },
   });
+  globalThis.io = io;
+  console.log("🚀 Socket.IO server pokrenut globalno");
+} else {
+  io = globalThis.io;
 }
 
+// 🔹 Glavna funkcija (handler za Netlify funkciju)
 export default async (req, res) => {
   try {
-    // TikTok šalje challenge GET zahtev prilikom verifikacije webhooka
+    // TikTok šalje GET zahtev sa challenge tokenom (prva verifikacija)
     if (req.method === "GET") {
-      const url = new URL(req.url);
+      const url = new URL(req.url, `http://${req.headers.host}`);
       const challenge = url.searchParams.get("challenge");
+
       if (challenge) {
         console.log("✅ TikTok webhook potvrđen challenge-om:", challenge);
         return new Response(JSON.stringify({ challenge }), {
@@ -23,13 +33,13 @@ export default async (req, res) => {
       }
     }
 
-    // Ako nije GET, onda je event POST
+    // TikTok event POST zahtev
     if (req.method === "POST") {
       const body = await req.json();
       console.log("🎁 Primljen TikTok event:", body);
 
-      // Emituj svim klijentima
-      globalThis.io.emit("tiktok_event", body);
+      // Emituj svim povezanima preko Socket.IO
+      io.emit("tiktok_event", body);
 
       return new Response(
         JSON.stringify({ status: "success", received: true }),
@@ -40,7 +50,7 @@ export default async (req, res) => {
       );
     }
 
-    // Ako nije GET ni POST
+    // Ako metoda nije GET ili POST
     return new Response(
       JSON.stringify({ error: "Unsupported method" }),
       { status: 405, headers: { "Content-Type": "application/json" } }
