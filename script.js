@@ -1,230 +1,237 @@
-// script.js (final) - copy-paste into your Replit
+// final script.js — dynamic countries + PNG flag fallback + TikTok webhook handling
 
-/* COUNTRIES */
-const countries = [
-  { name: "Germany", flag: "🇩🇪", coins: 0 },
-  { name: "Spain", flag: "🇪🇸", coins: 0 },
-  { name: "Serbia", flag: "🇷🇸", coins: 0 },
-  { name: "Greece", flag: "🇬🇷", coins: 0 },
-  { name: "United Kingdom", flag: "🇬🇧", coins: 0 },
-  { name: "France", flag: "🇫🇷", coins: 0 },
-  { name: "Italy", flag: "🇮🇹", coins: 0 },
-  { name: "USA", flag: "🇺🇸", coins: 0 },
-  { name: "Brazil", flag: "🇧🇷", coins: 0 },
-  { name: "Mexico", flag: "🇲🇽", coins: 0 },
-  { name: "Japan", flag: "🇯🇵", coins: 0 },
-  { name: "South Korea", flag: "🇰🇷", coins: 0 },
-  { name: "Netherlands", flag: "🇳🇱", coins: 0 },
-  { name: "Poland", flag: "🇵🇱", coins: 0 },
-  { name: "Sweden", flag: "🇸🇪", coins: 0 },
-  { name: "Turkey", flag: "🇹🇷", coins: 0 },
-  { name: "Egypt", flag: "🇪🇬", coins: 0 },
-  { name: "India", flag: "🇮🇳", coins: 0 },
-  { name: "China", flag: "🇨🇳", coins: 0 },
-  { name: "Canada", flag: "🇨🇦", coins: 0 },
+/* ---------- Config / initial 20 countries (keeps your current look) ---------- */
+const initialCountries = [
+  { name: "Germany", slug: "germany", coins: 0 },
+  { name: "Spain", slug: "spain", coins: 0 },
+  { name: "Serbia", slug: "serbia", coins: 0 },
+  { name: "Greece", slug: "greece", coins: 0 },
+  { name: "United Kingdom", slug: "united-kingdom", coins: 0 },
+  { name: "France", slug: "france", coins: 0 },
+  { name: "Italy", slug: "italy", coins: 0 },
+  { name: "USA", slug: "usa", coins: 0 },
+  { name: "Brazil", slug: "brazil", coins: 0 },
+  { name: "Mexico", slug: "mexico", coins: 0 },
+  { name: "Japan", slug: "japan", coins: 0 },
+  { name: "South Korea", slug: "south-korea", coins: 0 },
+  { name: "Netherlands", slug: "netherlands", coins: 0 },
+  { name: "Poland", slug: "poland", coins: 0 },
+  { name: "Sweden", slug: "sweden", coins: 0 },
+  { name: "Turkey", slug: "turkey", coins: 0 },
+  { name: "Egypt", slug: "egypt", coins: 0 },
+  { name: "India", slug: "india", coins: 0 },
+  { name: "China", slug: "china", coins: 0 },
+  { name: "Canada", slug: "canada", coins: 0 }
 ];
 
-countries.forEach((c) => {
-  if (!/[\u{1F1E6}-\u{1F1FF}]/u.test(c.flag)) {
-    c.flag = `<img src="flags/${c.name.toLowerCase()}.png" alt="${c.name}" style="width:20px;height:20px;vertical-align:middle;">`;
-  }
-});
-
-/* trackers */
-let prevTop3 = [];
-let prevRanks = {};
-let prevCoins = {};
-countries.forEach(c => { prevRanks[c.name] = -1; prevCoins[c.name] = c.coins; });
-
-/* Realistic-ish TikTok gift values (coins). Sources used for approximate mapping. */
-const giftValues = {
-  rose: 1,          // 1 coin
-  panda: 5,         // 5 coins
-  perfume: 20,      // 20 coins
-  iloveyou: 49,     // 49 coins
-  confetti: 100,    // 100 coins
-  sunglasses: 199,  // 199 coins
-  moneyrain: 500,   // 500 coins
-  discoball: 1000,  // 1000 coins
-  mermaid: 2988,    // ~2988 coins
-  airplane: 6000,   // 6000 coins
-  planet: 15000,    // 15000 coins
-  lion: 29999,      // 29999 coins
-  universe: 44999   // 44999 coins
-};
-
-/* helper: choose random gift from pool with weights (more small gifts) */
-const giftPool = [
-  { key: "rose", weight: 55 },
-  { key: "panda", weight: 20 },
-  { key: "perfume", weight: 8 },
-  { key: "iloveyou", weight: 6 },
-  { key: "confetti", weight: 4 },
-  { key: "sunglasses", weight: 3 },
-  { key: "moneyrain", weight: 2 },
-  { key: "discoball", weight: 1.5 },
-  { key: "mermaid", weight: 0.6 },
-  { key: "airplane", weight: 0.3 },
-  { key: "planet", weight: 0.15 },
-  { key: "lion", weight: 0.05 },
-  { key: "universe", weight: 0.02 }
-];
-
-function chooseGiftFromPool() {
-  const total = giftPool.reduce((s,g) => s+g.weight, 0);
-  let r = Math.random()*total;
-  for (let g of giftPool) {
-    if (r < g.weight) return g.key;
-    r -= g.weight;
-  }
-  return giftPool[0].key;
+/* ---------- Helper: slugify country name for file names ---------- */
+function slugifyCountry(name) {
+  // simple slug: lowercase, replace spaces with -, remove accents & non-alphanum except hyphen
+  // remove diacritics:
+  const from = "ÁÀÄÂÃÅÆáàäâãåæČčĆćÇçĐđÉÈËÊéèëêÍÌÏÎíìïîŁłŃńÓÒÖÔÕØóòöôõøŒœŘřŠšŚśŸÿÝýŽžŽž";
+  const to   = "AAAAAAAaaaaaaaCcCcDdEEEEeeeeIIIIiiiiLlNnOOOOOOooooooOerRssSsyyYyZzZz";
+  let s = name.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // remove accents
+  s = s.replace(/[^\w\s-]/g, ""); // remove non word/space/hyphen
+  s = s.trim().toLowerCase().replace(/\s+/g, "-");
+  return s;
 }
 
-/* render leaderboard (Rank | Country | Gifts) */
-function updateLeaderboard() {
+/* ---------- Countries data structure: start with initial 20, keep a map for quick find ---------- */
+const countries = [];
+const countryMap = {}; // name -> object
+
+initialCountries.forEach(c => {
+  const obj = {
+    name: c.name,
+    slug: c.slug || slugifyCountry(c.name),
+    flagHtml: `<img src="flags/${c.slug || slugifyCountry(c.name)}.png" alt="${c.name}" style="width:20px;height:14px;vertical-align:middle;margin-right:6px;">`,
+    coins: c.coins || 0
+  };
+  countries.push(obj);
+  countryMap[c.name.toLowerCase()] = obj;
+});
+
+/* ---------- Trackers for animations / deltas ---------- */
+let prevTop20 = [];
+const prevCoins = {};
+countries.forEach(c => prevCoins[c.name.toLowerCase()] = c.coins);
+
+/* ---------- Gift value mapping (approx) ---------- */
+const giftValues = {
+  rose: 1, panda: 5, perfume: 20, iloveyou: 49, confetti: 100, sunglasses: 199,
+  moneyrain: 500, discoball: 1000, mermaid: 2988, airplane: 6000, planet: 15000,
+  lion: 29999, universe: 44999
+};
+
+/* ---------- Render logic: show top 20 only (keeps your current UI) ---------- */
+function updateLeaderboardRender() {
   const sorted = [...countries].sort((a,b) => b.coins - a.coins);
+  const top20 = sorted.slice(0,20);
+
   const tbody = document.getElementById("leaderboard-body");
+  if (!tbody) return;
   tbody.innerHTML = "";
 
-  sorted.forEach((c, index) => {
-    const row = document.createElement("tr");
-    row.style.opacity = "1";
-    row.style.transition = "all 0.35s ease";
-    row.setAttribute("data-name", c.name);
+  top20.forEach((c, idx) => {
+    const tr = document.createElement("tr");
+    tr.setAttribute("data-name", c.name);
 
-    // compact cells
+    // rank
     const tdRank = document.createElement("td");
-    tdRank.textContent = index + 1;
+    tdRank.textContent = idx + 1;
 
+    // country + flag
     const tdCountry = document.createElement("td");
-    tdCountry.innerHTML = `${c.flag} <span class="country-name">${c.name}</span>`;
+    tdCountry.innerHTML = `${c.flagHtml} <span class="country-name">${c.name}</span>`;
 
+    // gifts (coins bar)
     const tdGifts = document.createElement("td");
-    // gifts bar
     const bar = document.createElement("div");
     bar.className = "progress-bar";
-
-    // scale: choose maxRange depending on overall top coin (so bars grow realistically)
-    let topCoins = Math.max(...countries.map(x => x.coins), 1000);
-    let maxRange = topCoins <= 1000 ? 1000 : Math.max(topCoins, 5000);
-    const percent = Math.min((c.coins / maxRange) * 100, 100);
-
+    let maxCoins = Math.max(1000, ...countries.map(x => x.coins));
+    const percent = Math.min((c.coins / maxCoins) * 100, 100);
     const fill = document.createElement("div");
-    fill.className = "progress-fill " + (c.coins > 1000 ? "greenFill" : "goldFill");
-    fill.style.width = `${percent}%`;
-
-    const marker = document.createElement("div");
-    marker.className = "progress-marker";
-
+    fill.className = "progress-fill";
+    fill.style.width = percent + "%";
     bar.appendChild(fill);
-    bar.appendChild(marker);
     tdGifts.appendChild(bar);
 
-    // assemble
-    row.appendChild(tdRank);
-    row.appendChild(tdCountry);
-    row.appendChild(tdGifts);
+    tr.appendChild(tdRank);
+    tr.appendChild(tdCountry);
+    tr.appendChild(tdGifts);
 
-    // only TOP3 static borders
-    if (index === 0) row.classList.add("top1");
-    if (index === 1) row.classList.add("top2");
-    if (index === 2) row.classList.add("top3");
-
-    // rank improvement detection -> fade animation
-    const prevRank = prevRanks[c.name];
-    if (prevRank !== -1 && index < prevRank) {
-      row.classList.add("rank-change");
-      setTimeout(() => row.classList.remove("rank-change"), 1100);
-    }
-
-    // gift arrival detection -> highlight + popup
-    if (c.coins > (prevCoins[c.name] || 0)) {
-      // light-blue highlight:
-      row.classList.add("gift-highlight");
-      setTimeout(() => row.classList.remove("gift-highlight"), 1600);
-
-      // popup showing delta
-      const delta = c.coins - (prevCoins[c.name] || 0);
+    // highlight if increased
+    const prev = prevCoins[c.name.toLowerCase()] || 0;
+    if (c.coins > prev) {
+      tr.classList.add("gift-highlight");
+      // small popup delta
       const popup = document.createElement("div");
       popup.className = "gift-popup";
-      popup.textContent = `+${delta}`;
-      row.appendChild(popup);
-
-      // remove popup after animation end
-      setTimeout(() => {
-        if (popup.parentNode) popup.parentNode.removeChild(popup);
-      }, 900);
+      popup.textContent = `+${c.coins - prev}`;
+      tr.appendChild(popup);
+      setTimeout(() => popup.remove(), 1100);
+      setTimeout(() => tr.classList.remove("gift-highlight"), 1400);
     }
 
-    // store current for next delta check
-    prevRanks[c.name] = index;
-    prevCoins[c.name] = c.coins;
+    prevCoins[c.name.toLowerCase()] = c.coins;
 
-    tbody.appendChild(row);
+    // top classes (keep your styling)
+    if (idx === 0) tr.classList.add("top1");
+    if (idx === 1) tr.classList.add("top2");
+    if (idx === 2) tr.classList.add("top3");
+
+    tbody.appendChild(tr);
   });
 
-  // track top3 entry flash (keeps logic but no global big ring)
-  const currentTop3 = sorted.slice(0,3).map(c => c.name);
-  const rows = document.querySelectorAll("#leaderboard-body tr");
-  currentTop3.forEach((name, i) => {
-    if (!prevTop3.includes(name)) {
-      const r = rows[i];
-      if (r) {
-        r.style.animation = "flashTop 1.5s";
-        setTimeout(() => r.style.animation = "", 1500);
+  const newTopNames = top20.map(x => x.name);
+  // flash newly-entered top20 items
+  newTopNames.forEach((nm, i) => {
+    if (!prevTop20.includes(nm)) {
+      const row = tbody.querySelector(`tr[data-name="${nm}"]`);
+      if (row) {
+        row.style.animation = "flashTop 1.2s";
+        setTimeout(() => row.style.animation = "", 1300);
       }
     }
   });
-  prevTop3 = currentTop3;
+  prevTop20 = newTopNames;
 }
 
-/* apply gift points to country */
-function applyGiftToCountry(countryName, amount) {
-  const target = countries.find(c => c.name === countryName);
-  if (!target) return;
-  target.coins += amount;
-  updateLeaderboard();
+/* ---------- Apply gift: finds or creates country entry, adds coins ---------- */
+function ensureCountry(name) {
+  if (!name) name = "Unknown";
+  const key = name.toLowerCase();
+  if (countryMap[key]) return countryMap[key];
+
+  const slug = slugifyCountry(name);
+  const obj = {
+    name,
+    slug,
+    flagHtml: `<img src="flags/${slug}.png" alt="${name}" style="width:20px;height:14px;vertical-align:middle;margin-right:6px;">`,
+    coins: 0
+  };
+  countries.push(obj);
+  countryMap[key] = obj;
+  return obj;
 }
 
-/* random simulator: pick random country and gift, apply points.
-   Interval is randomized 2000-3000ms per your request.
+function applyGift(countryName, amount) {
+  const c = ensureCountry(countryName);
+  c.coins += Number(amount || 1);
+  updateLeaderboardRender();
+}
+
+/* ---------- Reset button (keeps your existing handler) ---------- */
+const resetBtn = document.getElementById("resetBtn");
+if (resetBtn) {
+  resetBtn.addEventListener("click", () => {
+    countries.forEach(c => c.coins = 0);
+    Object.keys(prevCoins).forEach(k => prevCoins[k] = 0);
+    updateLeaderboardRender();
+  });
+}
+
+/* ---------- Initial render (shows initial 20) ---------- */
+updateLeaderboardRender();
+
+/* ---------- TikTok/Webhook integration (WebSocket + Socket.IO fallback) ---------- */
+/* NOTE:
+   - main websocket endpoint you used previously: wss://tiktok-live-lbb.netlify.app/.netlify/functions/socket
+   - Socket.IO fallback endpoint: https://tiktok-live-lbb.in.rs (if you set up global socket there)
 */
-function simulateGift() {
-  const idx = Math.floor(Math.random()*countries.length);
-  const country = countries[idx];
-  const giftKey = chooseGiftFromPool();
-  const points = giftValues[giftKey] || 1;
-  applyGiftToCountry(country.name, points);
+
+try {
+  // WebSocket (your existing socket function)
+  const ws = new WebSocket("wss://tiktok-live-lbb.netlify.app/.netlify/functions/socket");
+
+  ws.onopen = () => console.log("✅ WebSocket connected to Netlify socket function");
+  ws.onmessage = (ev) => {
+    try {
+      const payload = JSON.parse(ev.data);
+      // expect payload shape: { country: "Country Name", value: <number>, user: "name", giftName: "..." }
+      const country = payload.country || payload.data?.country || payload.user?.country || payload.countryName;
+      const value = payload.value || payload.data?.value || payload.data?.giftValue || 1;
+      if (country) applyGift(country, value);
+      else console.log("⚠️ WebSocket event with no country:", payload);
+    } catch (err) {
+      console.warn("⚠️ ws parse error:", err);
+    }
+  };
+
+  ws.onclose = () => console.log("⚠️ WebSocket closed");
+  ws.onerror = (e) => console.warn("⚠️ WebSocket error", e);
+} catch (err) {
+  console.warn("⚠️ Could not open native WebSocket:", err);
 }
 
-/* reset function */
-function resetScores() {
-  countries.forEach(c => c.coins = 0);
-  countries.forEach(c => { prevCoins[c.name] = 0; prevRanks[c.name] = -1; });
-  prevTop3 = [];
-  updateLeaderboard();
-}
-
-/* menu handling */
-document.addEventListener("click", (e) => {
-  const btn = document.getElementById("menuBtn");
-  const dd = document.getElementById("menuDropdown");
-  if (e.target === btn) {
-    dd.style.display = dd.style.display === "block" ? "none" : "block";
-  } else {
-    if (!btn.contains(e.target)) dd.style.display = "none";
+// Socket.IO fallback (if webhook emits via io on tiktok-live-lbb.in.rs)
+try {
+  if (typeof io !== "undefined") {
+    const ioSocket = io("https://tiktok-live-lbb.in.rs", { transports: ["websocket"] });
+    ioSocket.on("connect", () => console.log("✅ Socket.IO connected to TikTok webhook"));
+    ioSocket.on("tiktok_event", (data) => {
+      // handle different shapes from TikTok
+      const country = data?.country || data?.data?.country || data?.payload?.country || data?.user?.country;
+      const value = data?.value || data?.data?.value || data?.data?.giftValue || 1;
+      applyGift(country || "Unknown", value);
+    });
+    ioSocket.on("disconnect", () => console.log("⚠️ io disconnected"));
   }
-});
-document.getElementById("resetBtn").addEventListener("click", resetScores);
+} catch (e) {
+  console.warn("ℹ️ Socket.IO client not available or failed:", e.message);
+}
 
-/* initial render */
-updateLeaderboard();
+/* ---------- Optional: simulate random gifts (disabled by default) ----------
+   If you want to test locally without real webhook - uncomment call to startSimulation()
+*/
+// startSimulation();
 
-/* start randomized simulation every 2-3 seconds */
-(function startRandomInterval() {
-  const t = 2000 + Math.random()*1000; // 2000-3000ms
-  setTimeout(() => {
-    simulateGift();
-    startRandomInterval();
-  }, t);
-})();
+function startSimulation(intervalMs = 2500) {
+  const sampleCountries = ["Madagascar","Iceland","Serbia","Germany","Brazil","Canada","Japan","Madagascar"];
+  setInterval(() => {
+    const name = sampleCountries[Math.floor(Math.random()*sampleCountries.length)];
+    const giftKey = Object.keys(giftValues)[Math.floor(Math.random()*Object.keys(giftValues).length)];
+    const val = giftValues[giftKey] || 1;
+    applyGift(name, val);
+  }, intervalMs);
+}
