@@ -1,31 +1,21 @@
-// ✅ TikTok Webhook sa challenge proverom i Socket.io emitovanjem (Netlify verzija)
+// ✅ TikTok Webhook sa challenge proverom i Socket.io emitovanjem
 import { Server } from "socket.io";
 
-// 🔹 Jedan globalni server koji ostaje aktivan (Netlify "cold start" fix)
-let io;
 if (!globalThis.io) {
-  io = new Server({
-    cors: {
-      origin: "*", // dozvoljava tvoj front-end
-      methods: ["GET", "POST"],
-    },
+  globalThis.io = new Server(3000, {
+    cors: { origin: "*" },
   });
-  globalThis.io = io;
-  console.log("🚀 Socket.IO server pokrenut globalno");
-} else {
-  io = globalThis.io;
+  console.log("✅ Socket.io server pokrenut na portu 3000");
 }
 
-// 🔹 Glavna funkcija (handler za Netlify funkciju)
 export default async (req, res) => {
   try {
-    // TikTok šalje GET zahtev sa challenge tokenom (prva verifikacija)
+    // 1️⃣ Challenge proveru TikTok radi GET metodom
     if (req.method === "GET") {
-      const url = new URL(req.url, `http://${req.headers.host}`);
+      const url = new URL(req.url);
       const challenge = url.searchParams.get("challenge");
-
       if (challenge) {
-        console.log("✅ TikTok webhook potvrđen challenge-om:", challenge);
+        console.log("✅ Challenge potvrđen:", challenge);
         return new Response(JSON.stringify({ challenge }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -33,30 +23,27 @@ export default async (req, res) => {
       }
     }
 
-    // TikTok event POST zahtev
+    // 2️⃣ TikTok event POST
     if (req.method === "POST") {
       const body = await req.json();
-      console.log("🎁 Primljen TikTok event:", body);
+      console.log("🎁 Novi TikTok event:", body);
 
-      // Emituj svim povezanima preko Socket.IO
-      io.emit("tiktok_event", body);
+      // Emituj svim povezanim klijentima (tvojoj web aplikaciji)
+      globalThis.io.emit("tiktok_event", body);
 
       return new Response(
         JSON.stringify({ status: "success", received: true }),
-        {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }
+        { status: 200, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    // Ako metoda nije GET ili POST
+    // 3️⃣ Ako je nešto drugo
     return new Response(
       JSON.stringify({ error: "Unsupported method" }),
       { status: 405, headers: { "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("❌ Greška u TikTok webhooku:", err);
+    console.error("❌ Greška u webhook funkciji:", err);
     return new Response(
       JSON.stringify({ status: "error", message: err.message }),
       { status: 500, headers: { "Content-Type": "application/json" } }
