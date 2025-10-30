@@ -1,36 +1,31 @@
+import { Server } from "socket.io";
+
+if (!globalThis.io) {
+  globalThis.io = new Server(3000, { cors: { origin: "*" } });
+}
+
 export default async (req, res) => {
   try {
-    // Parse body
+    // Primi TikTok event
     const body = await req.json();
+    console.log("🎁 Primljen TikTok event:", body);
 
-    // ✅ 1. TikTok test verifikacija
-    if (body?.challenge) {
-      return new Response(JSON.stringify({ challenge: body.challenge }), {
+    // Pošalji svim klijentima putem Socket.io
+    globalThis.io.emit("tiktok_event", body);
+
+    // Vrati TikToku odgovor da je primljeno
+    return new Response(
+      JSON.stringify({ status: "success", received: true }),
+      {
         status: 200,
         headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    // ✅ 2. Ako je pravi event (gift, comment, live itd)
-    if (body?.event) {
-      console.log("🎁 TikTok Event:", body);
-
-      return new Response(JSON.stringify({ status: "ok" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    // Ako nije ništa od gore navedenog
-    return new Response(JSON.stringify({ error: "Invalid request" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    console.error("❌ Webhook error:", error);
-    return new Response(JSON.stringify({ error: "Server error" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+      }
+    );
+  } catch (err) {
+    console.error("❌ Greška u webhooku:", err);
+    return new Response(
+      JSON.stringify({ status: "error", message: err.message }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
   }
 };
