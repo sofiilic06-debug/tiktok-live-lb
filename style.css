@@ -269,3 +269,40 @@ tbody tr td {
   tbody tr td { font-size: 0.98rem; padding: 6px 6px; }
   .gift-popup { right: 6px; font-size: 0.9rem; padding: 5px 7px; }
 }
+.gift-feed {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    width: 300px;
+    font-family: Arial, sans-serif;
+    color: white;
+    font-size: 14px;
+    pointer-events: none;
+}
+
+.gift {
+    display: flex;
+    align-items: center;
+    background: rgba(0,0,0,0.6);
+    border-radius: 10px;
+    padding: 6px 10px;
+    margin-top: 8px;
+    animation: slideUp 0.6s ease-out;
+}
+
+.gift img {
+    width: 36px;
+    height: 36px;
+    margin-right: 8px;
+    animation: float 2s ease-in-out infinite;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
