@@ -236,4 +236,29 @@ try {
   }
 } catch (e) {
   console.warn("ℹ️ Socket.IO client not available:", e.message);
+  const users = ["alex_qwer", "mila_live", "luka_123", "sofija_gift", "petar_stream", "ana_music", "nikola_dance", "jelena_art", "filip_fun", "dunja_style"];
+const gifts = [
+  {name: "Rose", img: "🌹"},
+  {name: "Heart", img: "💖"},
+  {name: "Star", img: "⭐"},
+  {name: "Fire", img: "🔥"},
+  {name: "Crown", img: "👑"},
+  {name: "Rocket", img: "🚀"},
+  {name: "Diamond", img: "💎"}
+];
+
+function createGift() {
+  const feed = document.getElementById("gift-feed");
+  const gift = document.createElement("div");
+  gift.className = "gift";
+  
+  const randomUser = users[Math.floor(Math.random() * users.length)];
+  const randomGift = gifts[Math.floor(Math.random() * gifts.length)];
+  const giftCount = Math.floor(Math.random() * 5) + 1;
+
+  gift.innerHTML = `<img src='https://flagcdn.com/24x18/${['us','fr','rs','gb','de','it','es','cn','jp','ae'][Math.floor(Math.random()*10)]}.png'>
+                    <span><strong>${randomUser}</strong> sent ${giftCount} × ${randomGift.img} ${randomGift.name}</span>`;
+  feed.appendChild(gift);
+
+  setTimeout(() => gift.remove(), 6000);
 }
